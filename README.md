@@ -119,14 +119,38 @@ Configuration rules (e.g. line length limits and exclusions) are defined in [ruf
 Because of our CI/CD pipeline, every commit pushed to `main` automatically builds a Docker container and publishes it to GHCR.
 
 ### Option A: Run via Pre-Built Docker Image (GHCR)
-No need to clone the code on your server. Just install Docker, configure your `.env` file, and run:
+You can deploy and run the application on any server running Docker without having to clone the repository or set up Python.
 
+#### Step 1: Create your Environment Configuration
+On your server, create a file named `.env` in your working directory containing your configuration settings:
+```ini
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+OLLAMA_API_URL=http://localhost:11434/api/generate
+OLLAMA_MODEL=qwen2.5:7b
+```
+
+#### Step 2: Log in to GitHub Container Registry (GHCR)
+*(Required if your package registry is set to private. You will need a GitHub Personal Access Token (PAT) with `read:packages` scope)*:
+```bash
+echo "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN" | docker login ghcr.io -u Metaspolit01 --password-stdin
+```
+
+#### Step 3: Run the Container
+Execute the following command to download (pull) and run the container in the background:
 ```bash
 docker run -d \
   --name job-finder \
+  --restart unless-stopped \
   --env-file .env \
   -p 8000:8000 \
   ghcr.io/metaspolit01/personal-job-finding-agent:latest
+```
+
+#### Step 4: Verify & Monitor
+You can view the logs of your running agent to ensure it is scraping and running checks correctly:
+```bash
+docker logs -f job-finder
 ```
 
 ### Option B: Docker Compose (Local Build)
