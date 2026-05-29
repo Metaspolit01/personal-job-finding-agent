@@ -1,0 +1,41 @@
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+bin/
+lib/
+share/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Database local storage
+database/*.db
+database/*.db.bak
+
+# Log files
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+
+# Personal resumes
+resumes/*.pdf
+resumes/*.docx

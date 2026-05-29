@@ -1,0 +1,33 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Database local storage
+database/*.db
+database/*.db.bak
+
+# Log files
+logs/*.log
+logs/*.log.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project configs & Git
+.git/
+.gitignore
+.dockerignore
+.agent.md
+README*.md
+test_*.py
+verify_*.py
+CVS
+.svn
