@@ -1,13 +1,10 @@
-FROM python:3.11-slim
+FROM mcr.microsoft.com/playwright/python:v1.42.0-jammy
 
 WORKDIR /app
 
 # Copy and install python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Download Chromium and automatically install all required OS dependencies
-RUN playwright install --with-deps chromium
 
 # Copy remaining code files
 COPY . .
