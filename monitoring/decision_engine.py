@@ -1,8 +1,7 @@
 import json
 import logging
-import sqlite3
 import requests
-from config.settings import OLLAMA_API_URL, OLLAMA_MODEL, DB_PATH
+from config.settings import OLLAMA_API_URL, OLLAMA_MODEL
 from security.audit_logger import log_audit_action
 from monitoring.operational_memory import (
     log_operational_incident,

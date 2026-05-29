@@ -1,0 +1,12 @@
+# Ruff configuration file
+target-version = "py311"
+line-length = 120
+
+[lint]
+# Enable Pyflakes (F) and standard Pycodestyle errors (E)
+select = ["F", "E"]
+
+# Ignore rules that cause noise in existing codebases
+ignore = [
+    "E501", # Line too long
+]

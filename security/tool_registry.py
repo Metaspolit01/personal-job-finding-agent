@@ -1,7 +1,6 @@
-import os
 import sqlite3
 import logging
-from typing import Callable, Any, Dict, List
+from typing import Callable, Any
 from config.settings import DB_PATH, BOT_TOKEN, CHAT_ID
 from security.audit_logger import log_audit_action
 
@@ -44,7 +43,7 @@ class ToolRegistry:
         try:
             # Check for missing required arguments or resolve keyword defaults
             result = self.tools[name]["func"](**arguments)
-            log_audit_action(name, "tool_invocation", "SUCCESS", f"Execution successful.")
+            log_audit_action(name, "tool_invocation", "SUCCESS", "Execution successful.")
             return result
         except Exception as e:
             log_audit_action(name, "tool_invocation", "FAILED", f"Error: {e}")

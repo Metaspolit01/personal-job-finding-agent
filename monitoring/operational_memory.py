@@ -1,6 +1,5 @@
 import sqlite3
 import logging
-from datetime import datetime
 from config.settings import DB_PATH
 
 logger = logging.getLogger(__name__)

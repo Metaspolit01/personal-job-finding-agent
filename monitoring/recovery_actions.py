@@ -5,7 +5,7 @@ import logging
 import subprocess
 import threading
 from datetime import datetime
-from config.settings import DB_PATH, LOG_CONFIG
+from config.settings import DB_PATH
 from database.memory_manager import save_preference, get_preferences, seed_default_preferences
 
 logger = logging.getLogger(__name__)

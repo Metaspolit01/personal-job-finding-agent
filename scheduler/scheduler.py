@@ -5,7 +5,6 @@ from scraper.scraper import scrape_linkedin_jobs
 from filtering.filter import is_filtered_out
 from matching.scorer import calculate_final_score
 from resumes.resume_parser import load_resume_text
-import time
 
 logger = logging.getLogger(__name__)
 

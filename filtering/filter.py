@@ -22,7 +22,6 @@ def is_filtered_out(title: str, company: str, description: str) -> bool:
     """
     title_lower = title.lower()
     company_lower = company.lower()
-    desc_lower = description.lower()
     
     # 1. Filter out by company blacklist from persistent memory
     try:

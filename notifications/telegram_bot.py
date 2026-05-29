@@ -1,10 +1,8 @@
 import logging
 import asyncio
-import sqlite3
 import os
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import ContextTypes
-from config.settings import DB_PATH
 from database.db_manager import get_unsent_top_jobs
 from database.memory_manager import (
     get_preferences,
@@ -12,10 +10,9 @@ from database.memory_manager import (
     add_conversation_turn,
     record_job_interaction,
     clear_conversation_history,
-    get_job_details,
     auto_extract_profile_memory
 )
-from matching.llm_orchestrator import query_ollama_securely, query_ollama_agent_loop
+from matching.llm_orchestrator import query_ollama_agent_loop
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +45,7 @@ async def list_jobs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"User requested job list manually for chat {chat_id}. Triggering active search.")
     
     # Deliver any matched but unsent jobs immediately
-    from database.db_manager import get_unsent_top_jobs, mark_as_sent
+    from database.db_manager import mark_as_sent
     from notifications.telegram_sender import send_jobs_to_telegram
     
     unsent = get_unsent_top_jobs(limit=10)

@@ -110,7 +110,6 @@ def execute_active_tasks():
     """Fetch and execute due persistent tasks from SQLite."""
     import sqlite3
     from database.memory_manager import log_task_execution, get_active_tasks
-    from scheduler.scheduler import run_job_search
     from config.settings import DB_PATH
     
     # Update active task gauge
