@@ -118,8 +118,8 @@ Configuration rules (e.g. line length limits and exclusions) are defined in [ruf
 
 Because of our CI/CD pipeline, every commit pushed to `main` automatically builds a Docker container and publishes it to GHCR.
 
-### Option A: Run via Pre-Built Docker Image (GHCR)
-You can deploy and run the application on any server running Docker without having to clone the repository or set up Python.
+### Option A: Minimal Run (Single Container via Docker)
+Use this option if you want to run only the job-finder agent without the monitoring dashboard to save RAM and CPU resources. You do not need to clone the repository or set up Python.
 
 #### Step 1: Create your Environment Configuration
 On your server, create a file named `.env` in your working directory containing your configuration settings:
@@ -133,7 +133,7 @@ OLLAMA_MODEL=qwen2.5:7b
 #### Step 2: Log in to GitHub Container Registry (GHCR)
 *(Required if your package registry is set to private. You will need a GitHub Personal Access Token (PAT) with `read:packages` scope)*:
 ```bash
-echo "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN" | docker login ghcr.io -u Metaspolit01 --password-stdin
+echo "THEIR_PERSONAL_ACCESS_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
 ```
 
 #### Step 3: Run the Container
@@ -153,10 +153,10 @@ You can view the logs of your running agent to ensure it is scraping and running
 docker logs -f job-finder
 ```
 
-### Option B: Docker Compose (Local Build)
-You can run the agent alongside Prometheus/Grafana using Docker Compose:
+### Option B: Full Stack Run (Multi-Container via Docker Compose)
+Use this option if you want to run the job-finder agent along with Prometheus and Grafana for monitoring dashboards. Since it pulls the pre-built image from GHCR, it starts immediately without compiling code locally:
 ```bash
-docker-compose up -d --build
+docker-compose up -d
 ```
 
 ### Option C: Traditional Cloud VM Deployment (Systemd)

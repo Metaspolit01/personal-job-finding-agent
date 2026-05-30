@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   personal-agent:
-    build: .
+    image: ghcr.io/metaspolit01/personal-job-finding-agent:latest
     container_name: personal-agent
     volumes:
       - ./database:/app/database
