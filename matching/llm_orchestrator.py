@@ -9,6 +9,7 @@ from config.settings import (
     OPENAI_API_KEY,
     OPENAI_API_BASE,
     OPENAI_MODEL,
+    OPENAI_JSON_MODE,
     DB_PATH
 )
 from security.audit_logger import log_audit_action
@@ -111,7 +112,7 @@ def query_llm_securely(prompt: str, json_format: bool = False, session_id: str =
                 "temperature": 0.1,
                 "stream": False
             }
-            if json_format:
+            if json_format and OPENAI_JSON_MODE:
                 payload["response_format"] = {"type": "json_object"}
                 
             url = f"{OPENAI_API_BASE.rstrip('/')}/chat/completions"
@@ -201,9 +202,10 @@ async def query_llm_agent_loop(prompt: str, session_id: str = "default") -> str:
                     "model": OPENAI_MODEL,
                     "messages": messages,
                     "stream": False,
-                    "response_format": {"type": "json_object"},
                     "temperature": 0.2
                 }
+                if OPENAI_JSON_MODE:
+                    payload["response_format"] = {"type": "json_object"}
                 
                 url = f"{OPENAI_API_BASE.rstrip('/')}/chat/completions"
                 logger.info(f"Agent Loop [Turn {iteration}/{max_iterations}]: Querying OpenAI-compatible API ({OPENAI_MODEL})...")

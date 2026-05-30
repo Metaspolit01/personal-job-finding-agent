@@ -15,6 +15,7 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b").strip()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+OPENAI_JSON_MODE = os.getenv("OPENAI_JSON_MODE", "false").strip().lower() == "true"
 
 # Database Settings
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "jobs.db")
