@@ -2,7 +2,15 @@ import requests
 import json
 import logging
 import sqlite3
-from config.settings import OLLAMA_API_URL, OLLAMA_MODEL, DB_PATH
+from config.settings import (
+    LLM_PROVIDER,
+    OLLAMA_API_URL,
+    OLLAMA_MODEL,
+    OPENAI_API_KEY,
+    OPENAI_API_BASE,
+    OPENAI_MODEL,
+    DB_PATH
+)
 from security.audit_logger import log_audit_action
 from database.memory_manager import get_preferences, get_conversation_history
 
@@ -81,42 +89,72 @@ def build_personalized_system_prompt() -> str:
     
     return system_prompt
 
-def query_ollama_securely(prompt: str, json_format: bool = False, session_id: str = "default") -> str:
+def query_llm_securely(prompt: str, json_format: bool = False, session_id: str = "default") -> str:
     """
-    Direct prompt query to local Ollama (used for direct scoring and quick inference).
+    Direct prompt query to the configured LLM (Ollama or OpenAI-compatible API).
     """
-    payload = {
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": False
-    }
-    
-    if json_format:
-        payload["format"] = "json"
-        
-    logger.info(f"Direct LLM query: Dispatching to {OLLAMA_MODEL}...")
     import time
     start_time = time.perf_counter()
     try:
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
-        response.raise_for_status()
-        data = response.json()
-        response_text = data.get("response", "").strip()
-        
+        if LLM_PROVIDER.lower() == "openai":
+            if not OPENAI_API_KEY:
+                logger.error("OPENAI_API_KEY is not configured in settings.")
+                return ""
+            
+            headers = {
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": OPENAI_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                "stream": False
+            }
+            if json_format:
+                payload["response_format"] = {"type": "json_object"}
+                
+            url = f"{OPENAI_API_BASE.rstrip('/')}/chat/completions"
+            logger.info(f"Direct LLM query: Dispatching to OpenAI-compatible API ({OPENAI_MODEL})...")
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=120)
+            response.raise_for_status()
+            data = response.json()
+            response_text = data["choices"][0]["message"]["content"].strip()
+        else:
+            # Default to Ollama
+            payload = {
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False
+            }
+            if json_format:
+                payload["format"] = "json"
+                
+            logger.info(f"Direct LLM query: Dispatching to Ollama ({OLLAMA_MODEL})...")
+            response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
+            response.raise_for_status()
+            data = response.json()
+            response_text = data.get("response", "").strip()
+            
         duration = time.perf_counter() - start_time
-        from monitoring.metrics_collector import ai_response_latency
-        ai_response_latency.observe(duration)
-        
-        log_audit_action(tool="query_ollama_securely", action="direct_inference", result="SUCCESS")
+        try:
+            from monitoring.metrics_collector import ai_response_latency
+            ai_response_latency.observe(duration)
+        except Exception:
+            pass
+            
+        log_audit_action(tool="query_llm_securely", action="direct_inference", result="SUCCESS")
         return response_text
     except Exception as e:
-        log_audit_action(tool="query_ollama_securely", action="direct_inference", result="FAILED", details=str(e))
-        logger.error(f"Direct Ollama call failed: {e}")
+        log_audit_action(tool="query_llm_securely", action="direct_inference", result="FAILED", details=str(e))
+        logger.error(f"Direct LLM call failed: {e}")
         return ""
 
-async def query_ollama_agent_loop(prompt: str, session_id: str = "default") -> str:
+async def query_llm_agent_loop(prompt: str, session_id: str = "default") -> str:
     """
     Run an autonomous reasoning loop (max 4 turns) to fulfill user requests using tools.
+    Supports local Ollama and OpenAI-compatible API providers.
     """
     from security.tool_registry import registry
     
@@ -131,54 +169,105 @@ async def query_ollama_agent_loop(prompt: str, session_id: str = "default") -> s
         system_prompt = build_personalized_system_prompt()
         chat_history = get_conversation_history(limit=8, session_id=session_id)
         
-        # Build prompt context containing conversation history and observations
-        history_text = ""
-        if chat_history:
-            history_text = "\n=== RECENT CONVERSATION HISTORY ===\n"
-            for turn in chat_history:
-                history_text += f"{turn['role'].capitalize()}: {turn['content']}\n"
-            history_text += "===================================\n\n"
-            
-        observation_text = ""
-        if observations:
-            observation_text = "\n=== CURRENT TOOL EXECUTION OBSERVATIONS ===\n"
-            for obs in observations:
-                observation_text += f"Tool Called: {obs['tool']}\nArguments: {obs['args']}\nObservation Result: {obs['result']}\n\n"
-            observation_text += "===========================================\n\n"
-            
-        full_prompt = (
-            f"{system_prompt}\n"
-            f"{history_text}"
-            f"{observation_text}"
-            f"User Prompt: {current_prompt}\n"
-            f"Assistant (Respond ONLY in the JSON schema defined above):"
-        )
-        
-        payload = {
-            "model": OLLAMA_MODEL,
-            "prompt": full_prompt,
-            "stream": False,
-            "format": "json"
-        }
-        
-        logger.info(f"Agent Loop [Turn {iteration}/{max_iterations}]: Querying Ollama...")
         import time
         start_time = time.perf_counter()
+        
         try:
-            import httpx
-            async with httpx.AsyncClient() as client:
-                response = await client.post(OLLAMA_API_URL, json=payload, timeout=120.0)
-                response.raise_for_status()
-                data = response.json()
-                response_text = data.get("response", "").strip()
+            if LLM_PROVIDER.lower() == "openai":
+                if not OPENAI_API_KEY:
+                    logger.error("OPENAI_API_KEY is not configured.")
+                    return "Sorry, the OpenAI API key is missing."
                 
-                duration = time.perf_counter() - start_time
+                # Format messages array for Chat Completion API
+                messages = [
+                    {"role": "system", "content": system_prompt}
+                ]
+                if chat_history:
+                    for turn in chat_history:
+                        messages.append({"role": turn["role"], "content": turn["content"]})
+                
+                # Construct user content with observations
+                user_content = ""
+                if observations:
+                    user_content += "\n=== CURRENT TOOL EXECUTION OBSERVATIONS ===\n"
+                    for obs in observations:
+                        user_content += f"Tool Called: {obs['tool']}\nArguments: {obs['args']}\nObservation Result: {obs['result']}\n\n"
+                    user_content += "===========================================\n\n"
+                
+                user_content += f"User Prompt: {current_prompt}"
+                messages.append({"role": "user", "content": user_content})
+                
+                payload = {
+                    "model": OPENAI_MODEL,
+                    "messages": messages,
+                    "stream": False,
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.2
+                }
+                
+                url = f"{OPENAI_API_BASE.rstrip('/')}/chat/completions"
+                logger.info(f"Agent Loop [Turn {iteration}/{max_iterations}]: Querying OpenAI-compatible API ({OPENAI_MODEL})...")
+                
+                import httpx
+                headers = {
+                    "Authorization": f"Bearer {OPENAI_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(url, json=payload, headers=headers, timeout=120.0)
+                    response.raise_for_status()
+                    data = response.json()
+                    response_text = data["choices"][0]["message"]["content"].strip()
+            else:
+                # Default to Ollama
+                history_text = ""
+                if chat_history:
+                    history_text = "\n=== RECENT CONVERSATION HISTORY ===\n"
+                    for turn in chat_history:
+                        history_text += f"{turn['role'].capitalize()}: {turn['content']}\n"
+                    history_text += "===================================\n\n"
+                    
+                observation_text = ""
+                if observations:
+                    observation_text = "\n=== CURRENT TOOL EXECUTION OBSERVATIONS ===\n"
+                    for obs in observations:
+                        observation_text += f"Tool Called: {obs['tool']}\nArguments: {obs['args']}\nObservation Result: {obs['result']}\n\n"
+                    observation_text += "===========================================\n\n"
+                    
+                full_prompt = (
+                    f"{system_prompt}\n"
+                    f"{history_text}"
+                    f"{observation_text}"
+                    f"User Prompt: {current_prompt}\n"
+                    f"Assistant (Respond ONLY in the JSON schema defined above):"
+                )
+                
+                payload = {
+                    "model": OLLAMA_MODEL,
+                    "prompt": full_prompt,
+                    "stream": False,
+                    "format": "json"
+                }
+                
+                logger.info(f"Agent Loop [Turn {iteration}/{max_iterations}]: Querying Ollama ({OLLAMA_MODEL})...")
+                import httpx
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(OLLAMA_API_URL, json=payload, timeout=120.0)
+                    response.raise_for_status()
+                    data = response.json()
+                    response_text = data.get("response", "").strip()
+            
+            duration = time.perf_counter() - start_time
+            try:
                 from monitoring.metrics_collector import ai_response_latency
                 ai_response_latency.observe(duration)
+            except Exception:
+                pass
+                
         except Exception as e:
             logger.error(f"Agent loop call failed: {e}")
-            log_audit_action(tool="ollama_agent_loop", action="inference", result="FAILED", details=str(e))
-            return "Sorry, I had trouble connecting to Ollama."
+            log_audit_action(tool="llm_agent_loop", action="inference", result="FAILED", details=str(e))
+            return f"Sorry, I had trouble connecting to the LLM. Error: {e}"
             
         # Parse JSON schema
         try:
@@ -199,7 +288,7 @@ async def query_ollama_agent_loop(prompt: str, session_id: str = "default") -> s
         final_response = parsed.get("final_response", "")
         
         logger.info(f"Agent Thought: {thought}")
-        log_audit_action(tool="ollama_agent_loop", action="reasoning", result="SUCCESS", details=f"Thought: {thought}")
+        log_audit_action(tool="llm_agent_loop", action="reasoning", result="SUCCESS", details=f"Thought: {thought}")
         
         if not tool_calls:
             if not final_response:
@@ -224,3 +313,7 @@ async def query_ollama_agent_loop(prompt: str, session_id: str = "default") -> s
             })
             
     return "I completed my operations but reached the recursion limit before outputting a final response."
+
+# Backward compatibility aliases
+query_ollama_securely = query_llm_securely
+query_ollama_agent_loop = query_llm_agent_loop

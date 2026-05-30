@@ -12,7 +12,7 @@ from database.memory_manager import (
     clear_conversation_history,
     auto_extract_profile_memory
 )
-from matching.llm_orchestrator import query_ollama_agent_loop
+from matching.llm_orchestrator import query_llm_agent_loop
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         # Run agent ReAct reasoning loop
-        final_reply = await query_ollama_agent_loop(user_message, session_id="default")
+        final_reply = await query_llm_agent_loop(user_message, session_id="default")
         
         if not final_reply.strip():
             final_reply = "I completed my analysis but didn't output a response."

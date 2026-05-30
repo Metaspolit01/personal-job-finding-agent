@@ -85,8 +85,19 @@ Create a `.env` file in the root directory:
 ```ini
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+
+# Choose LLM Provider: 'ollama' or 'openai' (for any OpenAI-compatible API)
+LLM_PROVIDER=ollama
+
+# Option A: Local Ollama Settings (default)
 OLLAMA_API_URL=http://localhost:11434/api/generate
 OLLAMA_MODEL=qwen2.5:7b
+
+# Option B: External LLM API Settings (e.g. OpenAI, DeepSeek, Groq, OpenRouter)
+# (Required only if LLM_PROVIDER=openai)
+OPENAI_API_KEY=your_api_key_here
+OPENAI_API_BASE=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 ### 6. Run the Application
@@ -126,8 +137,19 @@ On your server, create a file named `.env` in your working directory containing 
 ```ini
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+
+# Choose LLM Provider: 'ollama' or 'openai' (for any OpenAI-compatible API)
+LLM_PROVIDER=ollama
+
+# Option A: Local Ollama Settings (default)
 OLLAMA_API_URL=http://localhost:11434/api/generate
 OLLAMA_MODEL=qwen2.5:7b
+
+# Option B: External LLM API Settings (e.g. OpenAI, DeepSeek, Groq, OpenRouter)
+# (Required only if LLM_PROVIDER=openai)
+OPENAI_API_KEY=your_api_key_here
+OPENAI_API_BASE=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 #### Step 2: Log in to GitHub Container Registry (GHCR)
