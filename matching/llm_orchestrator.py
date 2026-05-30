@@ -10,6 +10,7 @@ from config.settings import (
     OPENAI_API_BASE,
     OPENAI_MODEL,
     OPENAI_JSON_MODE,
+    OPENAI_TIMEOUT,
     DB_PATH
 )
 from security.audit_logger import log_audit_action
@@ -118,7 +119,7 @@ def query_llm_securely(prompt: str, json_format: bool = False, session_id: str =
             url = f"{OPENAI_API_BASE.rstrip('/')}/chat/completions"
             logger.info(f"Direct LLM query: Dispatching to OpenAI-compatible API ({OPENAI_MODEL})...")
             
-            response = requests.post(url, json=payload, headers=headers, timeout=120)
+            response = requests.post(url, json=payload, headers=headers, timeout=OPENAI_TIMEOUT)
             response.raise_for_status()
             data = response.json()
             response_text = data["choices"][0]["message"]["content"].strip()
@@ -216,7 +217,7 @@ async def query_llm_agent_loop(prompt: str, session_id: str = "default") -> str:
                     "Content-Type": "application/json"
                 }
                 async with httpx.AsyncClient() as client:
-                    response = await client.post(url, json=payload, headers=headers, timeout=120.0)
+                    response = await client.post(url, json=payload, headers=headers, timeout=OPENAI_TIMEOUT)
                     response.raise_for_status()
                     data = response.json()
                     response_text = data["choices"][0]["message"]["content"].strip()
