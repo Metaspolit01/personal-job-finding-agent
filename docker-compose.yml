@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   personal-agent:
+    build: .
     image: ghcr.io/metaspolit01/personal-job-finding-agent:latest
     container_name: personal-agent
     volumes:
@@ -11,7 +12,7 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - OLLAMA_API_URL=${OLLAMA_API_URL:-http://ollama:11434/api/generate}
+      - OLLAMA_API_URL=${DOCKER_OLLAMA_API_URL:-http://ollama:11434/api/generate}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
       - PROMETHEUS_URL=http://prometheus:9090
       - EXPORTER_TYPE=${EXPORTER_TYPE:-windows}

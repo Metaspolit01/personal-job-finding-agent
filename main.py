@@ -5,7 +5,8 @@ import os
 import socket
 import subprocess
 import threading
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram.request import HTTPXRequest
 from config.settings import LOG_CONFIG, BOT_TOKEN
 from scheduler.scheduler import run_job_search
 from notifications.telegram_bot import (
@@ -171,6 +172,10 @@ def scheduler_thread():
             logger.error(f"Unexpected error in scheduler loop: {e}")
             time.sleep(60)
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log the error when an exception is raised in update handling."""
+    logger.error("Exception while handling an update:", exc_info=context.error)
+
 def main():
     logger.info("Starting Job Finder Agent...")
 
@@ -195,7 +200,14 @@ def main():
     # Start the Telegram interactive bot on the main thread
     if BOT_TOKEN:
         logger.info("Starting interactive Telegram bot on main thread...")
-        application = Application.builder().token(BOT_TOKEN).build()
+        request_config = HTTPXRequest(
+            connect_timeout=30.0,
+            read_timeout=30.0,
+            write_timeout=30.0,
+            pool_timeout=10.0
+        )
+        application = Application.builder().token(BOT_TOKEN).request(request_config).build()
+        application.add_error_handler(error_handler)
         application.add_handler(CommandHandler("start", start_command))
         application.add_handler(CommandHandler("list", list_jobs_command))
         application.add_handler(CommandHandler("memory", memory_command))

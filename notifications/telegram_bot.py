@@ -58,7 +58,10 @@ async def list_jobs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             mark_as_sent(job_ids)
             await update.message.reply_text("✅ *Pre-matched jobs delivered successfully!*", parse_mode="Markdown")
             
-    await update.message.chat.send_action(action="typing")
+    try:
+        await update.message.chat.send_action(action="typing")
+    except Exception as e:
+        logger.warning(f"Failed to send typing chat action: {e}")
     await update.message.reply_text("🔍 *Starting active scraper to search for new postings...* (This will take a moment)", parse_mode="Markdown")
     
     # Run the blocking scraper in a background thread under the scraper role context
@@ -134,7 +137,10 @@ async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await list_jobs_command(update, context)
         return
         
-    await update.message.chat.send_action(action="typing")
+    try:
+        await update.message.chat.send_action(action="typing")
+    except Exception as e:
+        logger.warning(f"Failed to send typing chat action: {e}")
     
     # 1. Dynamically analyze for name declarations and persist profile updates in SQLite
     auto_extract_profile_memory(user_message)
@@ -143,9 +149,10 @@ async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     add_conversation_turn("user", user_message)
     
     # 3. Create interactive placeholder message
-    placeholder_msg = await update.message.reply_text("🤖 Thinking...")
-    
+    placeholder_msg = None
     try:
+        placeholder_msg = await update.message.reply_text("🤖 Thinking...")
+        
         # Run agent ReAct reasoning loop
         final_reply = await query_llm_agent_loop(user_message, session_id="default")
         
@@ -169,10 +176,16 @@ async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Error during agent chat loop: {e}")
         error_reply = "Sorry, my brain encountered an error or timed out."
-        try:
-            await placeholder_msg.edit_text(error_reply)
-        except Exception:
-            await update.message.reply_text(error_reply)
+        if placeholder_msg:
+            try:
+                await placeholder_msg.edit_text(error_reply)
+            except Exception:
+                pass
+        else:
+            try:
+                await update.message.reply_text(error_reply)
+            except Exception:
+                pass
 
 async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle interactive inline keyboard clicks (Mark Applied or Ignore Job) under secure admin role."""
@@ -219,7 +232,10 @@ async def resume_upload_handler(update: Update, context: ContextTypes.DEFAULT_TY
                 
         target_path = os.path.join(resume_dir, document.file_name)
         
-        await update.message.chat.send_action(action="typing")
+        try:
+            await update.message.chat.send_action(action="typing")
+        except Exception as e:
+            logger.warning(f"Failed to send typing chat action: {e}")
         new_file = await context.bot.get_file(document.file_id)
         await new_file.download_to_drive(target_path)
         
