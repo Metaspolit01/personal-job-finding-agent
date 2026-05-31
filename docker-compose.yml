@@ -11,7 +11,7 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - OLLAMA_API_URL=${OLLAMA_API_URL:-http://host.docker.internal:11434/api/generate}
+      - OLLAMA_API_URL=${OLLAMA_API_URL:-http://ollama:11434/api/generate}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
       - PROMETHEUS_URL=http://prometheus:9090
       - EXPORTER_TYPE=${EXPORTER_TYPE:-windows}
@@ -20,6 +20,15 @@ services:
       - "8000:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
     restart: unless-stopped
 
   prometheus:
@@ -50,3 +59,4 @@ services:
 volumes:
   prometheus_data:
   grafana_data:
+  ollama_data:

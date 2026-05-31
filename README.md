@@ -176,10 +176,27 @@ docker logs -f job-finder
 ```
 
 ### Option B: Full Stack Run (Multi-Container via Docker Compose)
-Use this option if you want to run the job-finder agent along with Prometheus and Grafana for monitoring dashboards. Since it pulls the pre-built image from GHCR, it starts immediately without compiling code locally:
+Use this option to run the job-finder agent, a local Ollama instance, and a monitoring stack (Prometheus & Grafana). All services are completely containerized:
+
+#### Step 1: Configure Environment Settings
+Ensure your `.env` file contains the correct Ollama API URL pointing to the `ollama` service name:
+```ini
+OLLAMA_API_URL=http://ollama:11434/api/generate
+OLLAMA_MODEL=qwen2.5:7b
+```
+
+#### Step 2: Start the Services
+Run all containers in the background:
 ```bash
 docker-compose up -d
 ```
+
+#### Step 3: Download the LLM Model inside the Ollama Container
+Since the Ollama container starts blank, you must pull the model weights to the container's volume:
+```bash
+docker exec -it ollama ollama pull qwen2.5:7b
+```
+*(Replace `qwen2.5:7b` with your desired model if you updated `OLLAMA_MODEL` in `.env`)*.
 
 ### Option C: Traditional Cloud VM Deployment (Systemd)
 If you prefer running without Docker directly on a Linux VM (Ubuntu 22.04), see the step-by-step [VM Deployment Guide](file:///d:/job-finder/README-cloud.md) which sets up a Systemd service to run the app continuously in the background.
